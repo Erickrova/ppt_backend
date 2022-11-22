@@ -4,6 +4,7 @@ import conectDB from "./config/db.js"
 import cors from "cors"
 import {Server} from "socket.io"
 import roomRoutes from "./routes/roomRoutes.js"
+import axios from "axios"
 
 const app = express()
 dotenv.config()
@@ -56,7 +57,7 @@ io.on("connection",socket =>{
         // console.log(users.usuarios)
         // console.log(`${data.usuario} on room ${data.sala}`)
     })
-    socket.on("disconnect",()=>{
+    socket.on("disconnect",async ()=>{
         const data = socket.data.username
         if(data?.sala){
             let room = usersOn.filter(room => room.nombre == data.sala)[0]
@@ -66,6 +67,11 @@ io.on("connection",socket =>{
             }
             if(room?.usuarios.length > 0){
                 rooms.push(room)
+            }else{
+                try {
+                    await axios.delete(`${process.env.BACKEND_URL}/api/room/delete/${room.nombre}`)
+                } catch (error) {
+                }
             }
             usersOn = rooms
             socket.to(data.sala).emit("leaveUser",room?.usuarios)
@@ -107,6 +113,10 @@ io.on("connection",socket =>{
     })
     socket.on("eligiendo",data=>{
         socket.to(data.sala).emit("eleccion",data)
+    })
+    socket.on("getRoom",data=>{
+        let room = usersOn.filter(room => room.nombre == data)[0]
+        socket.emit("room",room)
     })
 
 })
